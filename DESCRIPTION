@@ -1,0 +1,20 @@
+Package: horizon
+Title: Inflow forecast horizons used in reservoir release decisions.
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Sean",
+           family = "Turner",
+           role = c("aut", "cre"),
+           email = "sean.turner@pnnl.gov")
+Description: Estimates inflow forecast horizons used in reservoir release decisions.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 6.1.0
+Imports: 
+    dplyr,
+    ggplot2,
+    tidyr,
+    lubridate,
+    nloptr
