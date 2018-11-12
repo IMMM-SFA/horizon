@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# input storage, inflow, release data
+inst/extdata

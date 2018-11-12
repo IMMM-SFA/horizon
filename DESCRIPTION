@@ -17,4 +17,9 @@ Imports:
     ggplot2,
     tidyr,
     lubridate,
-    nloptr
+    nloptr,
+    magrittr,
+    purrr,
+    readr
+Suggests: 
+    testthat
