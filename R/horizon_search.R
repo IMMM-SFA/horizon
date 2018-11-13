@@ -13,13 +13,14 @@
 #'
 compute_availability <- function(dam, water_week, horizon,
                                  max_fill_gap = 10,
-                                 compute_from = "i"){
+                                 compute_from = "i",
+                                 data_dir = NULL){
 
   if(!(water_week %in% 1:52)) stop("water_week must be in the range 1->52")
   if(!(horizon %in% 1:52)) stop("horizon must be in the range 1->52")
 
   dam %>%
-    read_dam() %>%
+    read_dam(data_dir = data_dir) %>%
     convert_to_metric() %>%
     fill_NAs(max_fill_gap = max_fill_gap) %>%
     convert_to_complete_water_years() %>%
@@ -174,7 +175,8 @@ get_optimized_models <- function(dam, all_valid_combos = TRUE,
                                  water_week = NULL, horizon = NULL,
                                  compute_from = "i",
                                  max_fill_gap = 10,
-                                 write_loc = NULL){
+                                 write_loc = NULL,
+                                 data_dir = NULL){
   # set up multicore access for mapping
   plan(multiprocess)
 
@@ -196,7 +198,8 @@ get_optimized_models <- function(dam, all_valid_combos = TRUE,
                            water_week = ww_h_combos$ww[x],
                            horizon = ww_h_combos$h[x],
                            compute_from = compute_from,
-                           max_fill_gap = max_fill_gap)
+                           max_fill_gap = max_fill_gap,
+                           data_dir = data_dir)
     }) ->
     r_a_tibbles
 

@@ -7,9 +7,9 @@
 #' @importFrom readr read_csv cols
 #' @return tibble of observed dam data (storage, inflow, release)
 #' @export
-read_dam <- function(dam, data_dir){
+read_dam <- function(dam, data_dir = NULL){
 
-  if(missing(data_dir)){
+  if(is.null(data_dir)){
     data_dir <- system.file("extdata/", package = "horizon")
   }
 
