@@ -59,6 +59,7 @@ hplot_calculated_flows <- function(dam, plot_years = NULL){
 #'@export
 #'
 hplot_ready_data <- function(dam, water_week, horizon,
+                             cutoff_year = NULL,
                              add_piecewise_fn = F,
                              compute_from = "i",
                              max_fill_gap = 10){
@@ -79,6 +80,7 @@ hplot_ready_data <- function(dam, water_week, horizon,
   1:nrow(ww_h_combos) %>%
     future_map(function(x){
       compute_availability(dam,
+                           cutoff_year = cutoff_year,
                            water_week = ww_h_combos$ww[x],
                            horizon = ww_h_combos$h[x],
                            compute_from = compute_from,

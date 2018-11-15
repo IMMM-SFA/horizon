@@ -4,7 +4,7 @@
 \alias{read_dam}
 \title{read_dam}
 \usage{
-read_dam(dam, data_dir)
+read_dam(dam, data_dir = NULL)
 }
 \arguments{
 \item{dam}{name of dam to be loaded into the environment}
@@ -13,8 +13,5 @@ read_dam(dam, data_dir)
 tibble of observed dam data (storage, inflow, release)
 }
 \description{
-read_dam
-}
-\details{
-reads in observed data as tibble
+reads in observed dam data as tibble
 }

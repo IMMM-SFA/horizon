@@ -13,8 +13,5 @@ convert_to_metric(x)
 daily reservoir data in metric volumes (Mm^3)
 }
 \description{
-convert_to_metric
-}
-\details{
 converts daily data (s in af; i, r in cfs) metric volumes (Mm^3)
 }

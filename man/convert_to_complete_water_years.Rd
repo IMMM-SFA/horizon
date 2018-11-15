@@ -13,5 +13,5 @@ convert_to_complete_water_years(x)
 filtered data in water years
 }
 \description{
-convert_to_complete_water_years
+arranges data by water years and removes years with missing values
 }

@@ -13,5 +13,5 @@ aggregate_to_water_weeks(x)
 data in water weeks
 }
 \description{
-aggregate_to_water_weeks
+aggregates daily data to water weeks
 }

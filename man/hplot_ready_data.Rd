@@ -4,8 +4,8 @@
 \alias{hplot_ready_data}
 \title{hplot_ready_data}
 \usage{
-hplot_ready_data(dam, water_week, horizon, add_piecewise_fn = F,
-  compute_from = "i", max_fill_gap = 10)
+hplot_ready_data(dam, water_week, horizon, cutoff_year = NULL,
+  add_piecewise_fn = F, compute_from = "i", max_fill_gap = 10)
 }
 \arguments{
 \item{dam}{name of dam to be analyzed}

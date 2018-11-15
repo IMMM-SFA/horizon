@@ -14,7 +14,8 @@
 compute_availability <- function(dam, water_week, horizon,
                                  max_fill_gap = 10,
                                  compute_from = "i",
-                                 data_dir = NULL){
+                                 data_dir = NULL,
+                                 cutoff_year = NULL){
 
   if(!(water_week %in% 1:52)) stop("water_week must be in the range 1->52")
   if(!(horizon %in% 1:52)) stop("horizon must be in the range 1->52")
@@ -30,7 +31,8 @@ compute_availability <- function(dam, water_week, horizon,
            a = s_start + i_sum) %>%
     filter(is.na(a) == F, is.na(r) == F) %>%
     mutate(horizon = !! horizon %>% as.integer()) %>%
-    filter(water_week == !! water_week)
+    filter(water_week == !! water_week) %>%
+    set_cutoff_year(cutoff_year)
 
 }
 
@@ -42,7 +44,8 @@ compute_availability <- function(dam, water_week, horizon,
 #' @details runs the a local optimizer to get piecewise function
 #' @importFrom nloptr nloptr
 #' @importFrom zoo rollmean rollapply
-#' @importFrom dplyr select mutate filter
+#' @importFrom dplyr select mutate filter arrange
+#' @importFrom tibble tibble
 #' @return optimized parameters of piecewise function
 #' @export
 #'
@@ -73,10 +76,10 @@ optimize_piecewise_function <- function(r_a_tibble,
   # estimate breakpoint using smoothed slope inflection
   mod_data %>%
     mutate(slope = c(NA,
-                     zoo::rollapply(mod_data,
-                                    3, get_slope,
-                                    by.column = FALSE), NA),
-           slope_smooth = zoo::rollmean(slope, 5, fill = NA),
+                     rollapply(mod_data,
+                               3, get_slope,
+                               by.column = FALSE), NA),
+           slope_smooth = rollmean(slope, 5, fill = NA),
            slope_diff = slope_smooth - lag(slope_smooth)) ->
     slopes
 
@@ -138,6 +141,9 @@ optimize_piecewise_function <- function(r_a_tibble,
                      "xtol_rel" = 1.0e-3,
                      "maxeval" = 1000)) -> pw_model
 
+  message(paste0("Optimization for water week ", ww, " with horizon = ", lead_weeks, " complete!"))
+  flush.console()
+
   p <- pw_model$solution
   r_a_tibble %>%
     mutate(pred_r = case_when(
@@ -150,11 +156,11 @@ optimize_piecewise_function <- function(r_a_tibble,
 
   # return optimized parameters and associated r-squared value
   tibble(
-    p1 = p[1],
-    p2 = p[2],
-    p3 = p[3],
-    p4 = p[4],
-    r_sq = cor(mod_vs_obs$r, mod_vs_obs$pred_r) ^ 2,
+    p1 = round(p[1], 4),
+    p2 = round(p[2], 4),
+    p3 = round(p[3], 4),
+    p4 = round(p[4], 4),
+    r_sq = round(cor(mod_vs_obs$r, mod_vs_obs$pred_r) ^ 2, 4),
     water_week = ww,
     horizon = lead_weeks
     )
@@ -170,13 +176,14 @@ optimize_piecewise_function <- function(r_a_tibble,
 #' @return optimized piecewise functions for all water week and horizon combinations
 #' @export
 #'
-get_optimized_models <- function(dam, all_valid_combos = TRUE,
+get_optimized_models <- function(dam, all_valid_combos,
                                  write_to = NULL,
                                  water_week = NULL, horizon = NULL,
                                  compute_from = "i",
                                  max_fill_gap = 10,
                                  write_loc = NULL,
-                                 data_dir = NULL){
+                                 data_dir = NULL,
+                                 cutoff_year = NULL){
   # set up multicore access for mapping
   plan(multiprocess)
 
@@ -199,7 +206,8 @@ get_optimized_models <- function(dam, all_valid_combos = TRUE,
                            horizon = ww_h_combos$h[x],
                            compute_from = compute_from,
                            max_fill_gap = max_fill_gap,
-                           data_dir = data_dir)
+                           data_dir = data_dir,
+                           cutoff_year = cutoff_year)
     }) ->
     r_a_tibbles
 
@@ -210,7 +218,7 @@ get_optimized_models <- function(dam, all_valid_combos = TRUE,
   if(is.null(write_loc)) return(optimized_piecewise_functions)
 
   write_csv(optimized_piecewise_functions,
-            paste0(write_loc, "/pw_functions_", dam, ".csv"))
+            paste0(write_loc, "pw_functions_", dam, ".csv"))
 
 }
 

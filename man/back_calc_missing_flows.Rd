@@ -15,7 +15,7 @@ back_calc_missing_flows(x, compute_from = "i")
 data ready for horizon search
 }
 \description{
-back_calc_missing_flows
+completes dataset by
 }
 \details{
 assumes no losses (evap., seepage, etc.)

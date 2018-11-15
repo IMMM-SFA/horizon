@@ -1,9 +1,26 @@
 # functions for data preparation
 
+#' show_dams
+#'
+#' @param data_source one of "usbr", "usbrpn", "cdec", "usgs", "usace", "twdb"
+#' @description shows all dams from a given source
+#' @return list of dam names
+#' @export
+show_dams <- function(data_source, data_dir = NULL){
+
+  if(is.null(data_dir)){
+    data_dir <- system.file("extdata/", package = "horizon")
+  }
+
+  list.files(paste0(data_dir, "/", data_source, "/processed/")) %>%
+    substr(1, nchar(.) - 4)
+}
+
+
 #' read_dam
 #'
 #' @param dam name of dam to be loaded into the environment
-#' @details reads in observed data as tibble
+#' @description reads in observed dam data as tibble
 #' @importFrom readr read_csv cols
 #' @return tibble of observed dam data (storage, inflow, release)
 #' @export
@@ -15,7 +32,7 @@ read_dam <- function(dam, data_dir = NULL){
 
   data_source <- strsplit(dam, "_")[[1]][1]
   data_fn <- strsplit(dam, "_")[[1]][2]
-  read_csv(paste0(data_dir, data_source, "/processed/", data_fn, ".csv"),
+  read_csv(paste0(data_dir, "/", data_source, "/processed/", data_fn, ".csv"),
            col_types = cols(date = "D",
                             s_af = "d",
                             i_cfs = "d",
@@ -26,7 +43,7 @@ read_dam <- function(dam, data_dir = NULL){
 #' convert_to_metric
 #'
 #' @param x tibble to be converted
-#' @details converts daily data (s in af; i, r in cfs) metric volumes (Mm^3)
+#' @description converts daily data (s in af; i, r in cfs) metric volumes (Mm^3)
 #' @importFrom dplyr mutate select
 #' @return daily reservoir data in metric volumes (Mm^3)
 #' @export
@@ -44,6 +61,7 @@ convert_to_metric <- function(x){
 #'
 #' @param x tibble to be gap-filled
 #' @param max_fill_gap maximum gap (days) allowed for storage and inflow data
+#' @description fills NA values using a smoothing spline
 #' @importFrom dplyr mutate select if_else
 #' @importFrom zoo na.spline
 #' @return daily, gap-filled reservoir data in metric volumes (Mm^3)
@@ -98,7 +116,7 @@ remove_incomplete_water_years <- function(x){
     )) %>%
     mutate(viable = if_else(is.na(s), FALSE, viable)) ->
     x_
-  if(x_ %>% filter(viable == FALSE) %>% nrow() > 1){
+  if(x_ %>% filter(viable == FALSE) %>% nrow() >= 1){
     return(x %>% filter(water_year == "return a blank tibble"))
   }
   x
@@ -108,6 +126,7 @@ remove_incomplete_water_years <- function(x){
 #' convert_to_complete_water_years
 #'
 #' @param x tibble to be filtered
+#' @description arranges data by water years and removes years with missing values
 #' @import lubridate
 #' @importFrom dplyr mutate filter select bind_rows case_when
 #' @importFrom purrr map
@@ -153,7 +172,8 @@ get_weekly_res_data <- function(x){
 #' aggregate_to_water_weeks
 #'
 #' @param x tibble to be aggregated
-#' @importFrom dplyr bind_rows
+#' @description aggregates daily data to water weeks
+#' @importFrom dplyr bind_rows group_by arrange mutate ungroup filter summarise lead first
 #' @importFrom purrr map
 #' @return data in water weeks
 #' @export
@@ -162,7 +182,11 @@ aggregate_to_water_weeks <- function(x){
   x %>%
     split(.$water_year) %>%
     map(get_weekly_res_data) %>%
-    bind_rows()
+    bind_rows() -> x_agg
+
+  if(nrow(x_agg) == 0) stop("No good data!")
+
+  x_agg
 }
 
 
@@ -170,6 +194,7 @@ aggregate_to_water_weeks <- function(x){
 #'
 #' @param x tibble of s, i, r in water weeks
 #' @param compute_from variable (i, r) from which to back calculate
+#' @description completes dataset by
 #' @details assumes no losses (evap., seepage, etc.)
 #' @importFrom dplyr mutate if_else select rename filter
 #' @return data ready for horizon search
@@ -216,6 +241,25 @@ back_calc_missing_flows <- function(x, compute_from = "i"){
   return(res_data_weekly)
 }
 
+#' set_cutoff_year
+#'
+#' @param x tibble of storage, release, inflow data with water_year specified
+#' @param cutoff_year a year
+#' @details filters data post cutoff year only
+#' @importFrom dplyr filter
+#' @return filtered data
+#' @export
+#'
+set_cutoff_year <- function(x, cutoff_year = NULL){
 
+  # return same data if no cutoff year is specified
+  if(is.null(cutoff_year)) return(x)
+
+  # display warning if cutoff_year is later than all data available
+  if(cutoff_year > max(x$water_year)) warning("cutoff year is later than latest data year")
+
+  x %>%
+    filter(water_year >= cutoff_year)
+}
 
 

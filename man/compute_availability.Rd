@@ -5,7 +5,7 @@
 \title{compute_availability}
 \usage{
 compute_availability(dam, water_week, horizon, max_fill_gap = 10,
-  compute_from = "i")
+  compute_from = "i", data_dir = NULL, cutoff_year = NULL)
 }
 \arguments{
 \item{dam}{name of dam to be analyzed}

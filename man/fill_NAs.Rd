@@ -15,5 +15,5 @@ fill_NAs(x, max_fill_gap = 10)
 daily, gap-filled reservoir data in metric volumes (Mm^3)
 }
 \description{
-fill_NAs
+fills NA values using a smoothing spline
 }
