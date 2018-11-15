@@ -190,7 +190,7 @@ get_optimized_models <- function(dam, all_valid_combos,
   if(isTRUE(all_valid_combos)){
     # create a tibble of week and horizon combinations
     expand.grid(ww = 1:52,
-                h = 1:52) %>%
+                h = 1:30) %>%
       filter(h+ww <= 53) ->
       ww_h_combos
   }else{
