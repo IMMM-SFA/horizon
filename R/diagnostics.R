@@ -123,7 +123,14 @@ hplot_ready_data <- function(dam, water_week, horizon,
 #' @return plots of horizon and associated r_sq for all weeks
 #' @export
 #'
-hplot_model_performances <- function(file_loc,
+hplot_model_performances <- function(file,
                                      smoothing = "x_x_x_x"){
 
+
+
 }
+
+
+
+
+
