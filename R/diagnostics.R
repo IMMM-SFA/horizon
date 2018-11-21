@@ -116,15 +116,24 @@ hplot_ready_data <- function(dam, water_week, horizon,
 
 #' hplot_model_performances
 #'
-#' @param file_loc file containing piecewise functions to be plotted
-#' @param smoothing vector of values in order r_sq cutoff, smoothing_span, "", ""
+#' @param optimized_models tibble containing all piecewise functions for all water weeks
+#' @param smooth logical. Is smoothing desired? (default: FALSE)
 #' @import ggplot2
-#' @importFrom readr read_csv
-#' @return plots of horizon and associated r_sq for all weeks
+#' @return plot of selected horizon for all water weeks
 #' @export
 #'
-hplot_model_performances <- function(file,
-                                     smoothing = "x_x_x_x"){
+hplot_selected_models <- function(optimized_models,
+                                  smooth = FALSE){
+
+  optimized_models %>%
+    select_best_horizon() %>% remove_low_rsq(0.25) %>% despike() %>% post_smooth() %>%
+    ggplot(aes(water_week, horizon, color = r_sq)) +
+    geom_point() +
+    geom_line(aes(water_week, horizon), color = "black", alpha = 0.2) +
+    labs(title = "Selected model for ...",
+         x = "Water week",
+         y = "Horizon selected (weeks)",
+         color = "R-squared")
 
 
 
