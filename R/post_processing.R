@@ -3,17 +3,16 @@
 #' select_best_horizon
 #'
 #' @param set input set
-#' @param smooth logical. Is smoothing desired? (default: FALSE)
+#' @param pre_smooth logical. Is smoothing desired? (default: FALSE)
 #' @description identify horizon that produces best-fit model
 #' @importFrom dplyr filter mutate group_by summarise ungroup arrange
 #' @importFrom purrr map map_dfr
 #' @return smoothed horizons
 #' @export
 select_best_horizon <- function(set,
-                                pre_smooth = FALSE,
-                                post_smooth = TRUE){
+                                pre_smooth = FALSE){
 
-  if(isFALSE(smooth)){
+  if(isFALSE(pre_smooth)){
     return(
       set %>%
         # rounding ensures longer horizons need significantly...
@@ -28,7 +27,7 @@ select_best_horizon <- function(set,
     )
   }
 
-  # if smoothing is applied...
+  # if pre-smoothing is applied...
   set %>%
     filter(is.na(r_sq) == F) %>%
     split(.$water_week) %>%
@@ -87,7 +86,7 @@ despike <- function(x, tolerable_diff = 10){
 
 # post_smooth
 #
-# ...
+# final smooth on selected models
 #
 post_smooth <- function(x, lowess_f_param = 0.1){
   lowess(x$water_week, x$horizon, f = lowess_f_param) %>%
@@ -97,3 +96,55 @@ post_smooth <- function(x, lowess_f_param = 0.1){
     mutate(horizon = round(h_smoothed, 0)) %>%
     select(-h_smoothed)
 }
+
+
+#' select_all_models
+#'
+#' @param results_dir directory of results (optimized models for all weeks)
+#' @param write_loc location to write results
+#' @importFrom tibble as_tibble
+#' @importFrom dplyr mutate rename case_when select left_join right_join
+#' @importFrom purrr map
+#' @importFrom readr read_csv
+#' @return list of selected models
+#' @export
+select_all_models <- function(results_dir, write_loc = NULL){
+
+  list.files(results_dir, recursive = T) %>%
+    .[grepl("pw_functions", .)] %>%
+    map(function(x){
+
+      dam <- strsplit(x, split = "/")[[1]][1:2] %>%
+        paste(collapse = "_")
+
+
+      read_csv(paste0(results_dir, "/", x),
+               col_types = cols(p1 = "d",
+                                p2 = "d",
+                                p3 = "d",
+                                p4 = "d",
+                                water_week = "i",
+                                horizon = "i")) %>%
+        select_best_horizon() ->
+        selected_models_unsmoothed
+
+      selected_models_unsmoothed %>%
+        remove_low_rsq(rsq_cutoff = 0.25) %>%
+        despike() %>%
+        post_smooth() %>% select(-r_sq) %>%
+        rename(horizon_smth = horizon) %>%
+        right_join(selected_models_unsmoothed, by = "water_week") ->
+        selected_models
+
+      if(is.null(write_loc)) return(selected_models %>%
+                                      mutate(dam = !! dam))
+
+      selected_models %>%
+        write_csv(paste0(write_loc, "/", dam, ".csv"))
+
+  })
+}
+
+
+
+

@@ -4,12 +4,12 @@
 \alias{hplot_selected_models}
 \title{hplot_model_performances}
 \usage{
-hplot_selected_models(optimized_models, smooth = FALSE)
+hplot_selected_models(selected_models)
 }
 \arguments{
 \item{optimized_models}{tibble containing all piecewise functions for all water weeks}
 
-\item{smooth}{logical. Is smoothing desired? (default: FALSE)}
+\item{smooth}{logical. Is pre-smoothing desired? (default: FALSE)}
 }
 \value{
 plot of selected horizon for all water weeks

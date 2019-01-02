@@ -117,16 +117,16 @@ hplot_ready_data <- function(dam, water_week, horizon,
 #' hplot_model_performances
 #'
 #' @param optimized_models tibble containing all piecewise functions for all water weeks
-#' @param smooth logical. Is smoothing desired? (default: FALSE)
+#' @param smooth logical. Is pre-smoothing desired? (default: FALSE)
 #' @import ggplot2
+#' @importFrom tibble as_tibble
+#' @importFrom dplyr mutate rename case_when select left_join
 #' @return plot of selected horizon for all water weeks
 #' @export
 #'
-hplot_selected_models <- function(optimized_models,
-                                  smooth = FALSE){
+hplot_selected_models <- function(selected_models){
 
-  optimized_models %>%
-    select_best_horizon() %>% remove_low_rsq(0.25) %>% despike() %>% post_smooth() %>%
+  selected_models %>%
     ggplot(aes(water_week, horizon, color = r_sq)) +
     geom_point() +
     geom_line(aes(water_week, horizon), color = "black", alpha = 0.2) +
@@ -135,11 +135,7 @@ hplot_selected_models <- function(optimized_models,
          y = "Horizon selected (weeks)",
          color = "R-squared")
 
-
-
 }
-
-
 
 
 

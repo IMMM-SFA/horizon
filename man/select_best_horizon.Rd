@@ -4,12 +4,12 @@
 \alias{select_best_horizon}
 \title{select_best_horizon}
 \usage{
-select_best_horizon(set, pre_smooth = FALSE, post_smooth = TRUE)
+select_best_horizon(set, pre_smooth = FALSE)
 }
 \arguments{
 \item{set}{input set}
 
-\item{smooth}{logical. Is smoothing desired? (default: FALSE)}
+\item{pre_smooth}{logical. Is smoothing desired? (default: FALSE)}
 }
 \value{
 smoothed horizons
