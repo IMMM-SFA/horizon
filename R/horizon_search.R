@@ -41,6 +41,7 @@ compute_availability <- function(dam, water_week, horizon,
 #'
 #' @param r_a_tibble a tibble specifying release and availability for given water_week and horizon
 #' @param append_r_pred append preductions of r to input tibble rather than return parameters?
+#' @param opt_mode set as "two_param" or "four_param" (i.e., with slopes) optimization
 #' @details runs the a local optimizer to get piecewise function
 #' @importFrom nloptr nloptr
 #' @importFrom zoo rollmean rollapply
@@ -50,7 +51,8 @@ compute_availability <- function(dam, water_week, horizon,
 #' @export
 #'
 optimize_piecewise_function <- function(r_a_tibble,
-                                        append_r_pred = F){
+                                        append_r_pred = F,
+                                        opt_mode){
 
   # exit routine and return NA for horizons > allowable within water year
   r_a_tibble %>% .$water_week %>% unique -> ww
@@ -121,30 +123,112 @@ optimize_piecewise_function <- function(r_a_tibble,
       .$sq_error %>% mean() %>% sqrt()
   }
 
+  # v2 has the slope constraint inside the function (i.e. slopes are not decision variables)
+  get_pw_rmse_v2 <- function(x){
+
+    mod_data[which(mod_data$a < x[2]), ] -> lhs
+    mod_data[which(mod_data$a >= x[2]), ] -> rhs
+
+    lm(I(lhs$r - x[1]) ~ 0 + I(lhs$a - x[2]))$coef -> lhs_s
+    lm(I(rhs$r - x[1]) ~ 0 + I(rhs$a - x[2]))$coef -> rhs_s
+
+    if(lhs_s < 1e-3) lhs_s <- 1e-3
+    if(rhs_s < lhs_s) rhs_s <- lhs_s
+
+    mod_data %>%
+      mutate(lhs_r = (a * lhs_s) + (x[1] - (lhs_s * x[2])),
+             rhs_r = (a * rhs_s) + (x[1] - (rhs_s * x[2])),
+             pred_r = case_when(
+               a <= x[2] ~ lhs_r,
+               a > x[2] ~ rhs_r
+             ),
+             sq_error = (r - pred_r) ^ 2) %>%
+      # ggplot(aes(a, r)) + geom_point() +
+      # geom_point(aes(y = pred_r), col = "blue")
+      .$sq_error %>% mean() %>% sqrt(.)
+
+
+    # mod_data %>%
+    #   mutate(a_ = a - x[2],
+    #          side = if_else(a_ < 0, "lhs", "rhs")) %>%
+    #   split(.$side) %>%
+    #   map(function(side){
+    #     side %>%
+    #       add_predictions(lm(I(.$r - x[1]) ~ 0 + .$a_)) %>%
+    #       mutate(pred = pred + x[1])
+    #   }) %>%
+    #   bind_rows() -> dip  # data and initial predictions
+    #
+    # # constrain slopes if needed
+    # filter(dip, side == "lhs") -> dip_lhs
+    # filter(dip, side == "rhs") -> dip_rhs
+    #
+    # slope_lhs <- dip_lhs$pred[2] - dip_lhs$pred[1] / dip_lhs$r[2] - dip_lhs $r[1]
+    # slope_rhs <- dip_rhs$pred[2] - dip_rhs$pred[1] / dip_rhs$r[2] - dip_rhs $r[1]
+    #
+    # if(slope_lhs < 0 | slope_rhs <0){
+    #   dip %>%
+    #     mutate(pred_ = case_when(
+    #       side == "lhs" & slope_lhs < 0 ~ x[1],
+    #       side == "lhs" & slope_lhs >=0 ~ pred,
+    #       side == "rhs" & slope_rhs < 0 ~ x[1],
+    #       side == "rhs" & slope_rhs >= 0 ~ pred
+    #     )) -> dip
+    #   # ggplot(aes(a, r)) + geom_point() +
+    #   # geom_point(aes(y = pred_), col = "blue")
+    # dip%>%
+    #   mutate(sq_error = (r - pred) ^ 2) %>%
+    #   .$sq_error %>% mean() %>% sqrt(.)
+  }
+
   # inequality constraint
   ineq_1 <- function(x){
     x[1] - x[2]
   }
 
   # polish with local optimizer
-  nloptr(x0 = c(s1 = slope_1_est,
-                s2 = slope_2_est,
-                bp_r = min(max(bp_est$r, 0), max(mod_data$r)),
-                bp_a = min(max(bp_est$a, bp_min), bp_max)),
-         eval_f = get_pw_rmse,
-         eval_g_ineq = ineq_1,
-         lb = c(1e-3, 1e-3, 0, bp_min),
-         ub = c(max(max_slope, slope_1_est),
-                max(max_slope, slope_2_est),
-                max(mod_data$r), bp_max),
-         opts = list("algorithm" = "NLOPT_LN_COBYLA",
-                     "xtol_rel" = 1.0e-3,
-                     "maxeval" = 1000)) -> pw_model
+  if(opt_mode == "four_param"){
+    nloptr(x0 = c(s1 = slope_1_est,
+                  s2 = slope_2_est,
+                  bp_r = min(max(bp_est$r, 0), max(mod_data$r)),
+                  bp_a = min(max(bp_est$a, bp_min), bp_max)),
+           eval_f = get_pw_rmse,
+           eval_g_ineq = ineq_1,
+           lb = c(1e-3, 1e-3, 0, bp_min),
+           ub = c(max(max_slope, slope_1_est),
+                  max(max_slope, slope_2_est),
+                  max(mod_data$r), bp_max),
+           opts = list("algorithm" = "NLOPT_LN_COBYLA",
+                       "xtol_rel" = 1.0e-3,
+                       "maxeval" = 1000)) -> pw_model
+
+    p <- pw_model$solution
+
+  }else if(opt_mode == "two_param"){
+    # v2: only optimize breakpoint--compute and constrain slope within function
+    nloptr(x0 = c(bp_r = min(max(bp_est$r, 0), max(mod_data$r)),
+                  bp_a = min(max(bp_est$a, bp_min), bp_max)),
+           eval_f = get_pw_rmse_v2,
+           lb = c(0, bp_min),
+           ub = c(max(mod_data$r), bp_max),
+           opts = list("algorithm" = "NLOPT_LN_BOBYQA",
+                       "xtol_rel" = 1.0e-3,
+                       "maxeval" = 1000)) -> pw_model
+
+    p_ <- pw_model$solution
+    mod_data[which(mod_data$a < p_[2]), ] -> lhs
+    mod_data[which(mod_data$a >= p_[2]), ] -> rhs
+    max(lm(I(lhs$r - p_[1]) ~ 0 + I(lhs$a - p_[2]))$coef, 1e-3) -> lhs_s
+    max(lm(I(rhs$r - p_[1]) ~ 0 + I(rhs$a - p_[2]))$coef, lhs_s) -> rhs_s
+
+    p <- c(lhs_s, rhs_s, pw_model$solution)
+
+  }
 
   message(paste0("Optimization for water week ", ww, " with horizon = ", lead_weeks, " complete!"))
   flush.console()
 
-  p <- pw_model$solution
+
   r_a_tibble %>%
     mutate(pred_r = case_when(
       a <= p[4] ~ (a * p[1]) + (p[3] - (p[1] * p[4])),
@@ -183,7 +267,8 @@ get_optimized_models <- function(dam, all_valid_combos,
                                  max_fill_gap = 10,
                                  write_loc = NULL,
                                  data_dir = NULL,
-                                 cutoff_year = NULL){
+                                 cutoff_year = NULL,
+                                 opt_mode = "two_param"){
   # set up multicore access for mapping
   plan(multiprocess)
 
@@ -212,7 +297,7 @@ get_optimized_models <- function(dam, all_valid_combos,
     r_a_tibbles
 
   r_a_tibbles %>%
-    future_map(optimize_piecewise_function) %>%
+    future_map(optimize_piecewise_function, opt_mode = opt_mode) %>%
     bind_rows() -> optimized_piecewise_functions
 
   if(is.null(write_loc)) return(optimized_piecewise_functions)

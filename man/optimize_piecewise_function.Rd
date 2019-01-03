@@ -4,12 +4,14 @@
 \alias{optimize_piecewise_function}
 \title{optimize_piecewise_function}
 \usage{
-optimize_piecewise_function(r_a_tibble, append_r_pred = F)
+optimize_piecewise_function(r_a_tibble, append_r_pred = F, opt_mode)
 }
 \arguments{
 \item{r_a_tibble}{a tibble specifying release and availability for given water_week and horizon}
 
 \item{append_r_pred}{append preductions of r to input tibble rather than return parameters?}
+
+\item{opt_mode}{set as "two_param" or "four_param" (i.e., with slopes) optimization}
 }
 \value{
 optimized parameters of piecewise function

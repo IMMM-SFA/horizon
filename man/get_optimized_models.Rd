@@ -7,7 +7,7 @@
 get_optimized_models(dam, all_valid_combos, write_to = NULL,
   water_week = NULL, horizon = NULL, compute_from = "i",
   max_fill_gap = 10, write_loc = NULL, data_dir = NULL,
-  cutoff_year = NULL)
+  cutoff_year = NULL, opt_mode = "two_param")
 }
 \arguments{
 \item{dam}{name of dam to be analyzed}

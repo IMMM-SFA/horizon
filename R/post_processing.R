@@ -71,7 +71,7 @@ remove_low_rsq <- function(x, rsq_cutoff){
 #
 # removes sharp spikes
 #
-despike <- function(x, tolerable_diff = 10){
+despike <- function(x, tolerable_diff = 6){
   x %>%
     mutate(lag_h = lag(horizon),
            lead_h = lead(horizon),
@@ -129,7 +129,7 @@ select_all_models <- function(results_dir, write_loc = NULL){
         selected_models_unsmoothed
 
       selected_models_unsmoothed %>%
-        remove_low_rsq(rsq_cutoff = 0.25) %>%
+        remove_low_rsq(rsq_cutoff = 0.2) %>%
         despike() %>%
         post_smooth() %>% select(-r_sq) %>%
         rename(horizon_smth = horizon) %>%

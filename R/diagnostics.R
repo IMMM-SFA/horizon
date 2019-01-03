@@ -62,7 +62,8 @@ hplot_ready_data <- function(dam, water_week, horizon,
                              cutoff_year = NULL,
                              add_piecewise_fn = F,
                              compute_from = "i",
-                             max_fill_gap = 10){
+                             max_fill_gap = 10,
+                             opt_mode = "two_param"){
 
   # set up multicore access for mapping
   plan(multiprocess)
@@ -101,7 +102,7 @@ hplot_ready_data <- function(dam, water_week, horizon,
            color = "Water year")
   }else{
     r_a_tibbles %>%
-      future_map(optimize_piecewise_function, append_r_pred = T) %>%
+      future_map(optimize_piecewise_function, append_r_pred = T, opt_mode = opt_mode) %>%
       bind_rows() %>%
       ggplot(aes(a, r, color = water_year)) + geom_point() +
       facet_grid(water_week ~ horizon, scales = "free", labeller = "label_both") +
