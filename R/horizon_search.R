@@ -120,7 +120,7 @@ optimize_piecewise_function <- function(r_a_tibble,
                a > x[4] ~ rhs_r
              ),
              sq_error = (r - pred_r) ^ 2) %>%
-      .$sq_error %>% mean() %>% sqrt()
+      .$sq_error %>% mean() %>% sqrt(.)
   }
 
   # v2 has the slope constraint inside the function (i.e. slopes are not decision variables)

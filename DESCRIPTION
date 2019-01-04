@@ -16,10 +16,14 @@ Imports:
     dplyr,
     ggplot2,
     tidyr,
+    tibble,
     lubridate,
     nloptr,
     magrittr,
     purrr,
-    readr
+    readr,
+    furrr,
+    future,
+    zoo
 Suggests: 
     testthat
