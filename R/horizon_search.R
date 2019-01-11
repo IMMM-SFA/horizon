@@ -273,7 +273,6 @@ optimize_piecewise_function <- function(r_a_tibble,
 #' @export
 #'
 get_optimized_models <- function(dam, all_valid_combos,
-                                 allow_fcast_across_water_yr = TRUE,
                                  write_to = NULL,
                                  water_week = NULL, horizon = NULL,
                                  compute_from = "i",
@@ -290,9 +289,9 @@ get_optimized_models <- function(dam, all_valid_combos,
     expand.grid(ww = 1:52,
                 h = 1:max_horizon) ->
       ww_h_combos
-    if(isFALSE(allow_fcast_across_water_yr)){
-      ww_h_combos <- ww_h_combos %>% filter(h+ww <= 53)
-    }
+    # if(isFALSE(allow_fcast_across_water_yr)){
+    #   ww_h_combos <- ww_h_combos %>% filter(h+ww <= 53)
+    # }
   }else{
     expand.grid(ww = water_week,
                 h = horizon) ->
