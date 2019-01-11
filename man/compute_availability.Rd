@@ -5,7 +5,8 @@
 \title{compute_availability}
 \usage{
 compute_availability(dam, water_week, horizon, max_fill_gap = 10,
-  compute_from = "i", data_dir = NULL, cutoff_year = NULL)
+  compute_from = "i", data_dir = NULL, cutoff_year = NULL,
+  min_allowable_points = 10)
 }
 \arguments{
 \item{dam}{name of dam to be analyzed}
@@ -17,6 +18,8 @@ compute_availability(dam, water_week, horizon, max_fill_gap = 10,
 \item{max_fill_gap}{maximum gap (days) allowed for storage and inflow data}
 
 \item{compute_from}{variable (i, r) from which to back calculate}
+
+\item{min_allowable_points}{minimum number of points for building r-a function (default = 10)}
 }
 \value{
 tibble of release versus availability for given water week and horizon

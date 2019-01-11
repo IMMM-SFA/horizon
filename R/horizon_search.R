@@ -5,6 +5,7 @@
 #' @param horizon look ahead horizon (1 <= h <= 52)
 #' @param max_fill_gap maximum gap (days) allowed for storage and inflow data
 #' @param compute_from variable (i, r) from which to back calculate
+#' @param min_allowable_points minimum number of points for building r-a function (default = 10)
 #' @details compute availability for given week of year and horizon (in weeks)
 #' @importFrom dplyr mutate filter
 #' @importFrom zoo rollsum
@@ -15,7 +16,8 @@ compute_availability <- function(dam, water_week, horizon,
                                  max_fill_gap = 10,
                                  compute_from = "i",
                                  data_dir = NULL,
-                                 cutoff_year = NULL){
+                                 cutoff_year = NULL,
+                                 min_allowable_points = 10){
 
   if(!(water_week %in% 1:52)) stop("water_week must be in the range 1->52")
   if(!(horizon %in% 1:52)) stop("horizon must be in the range 1->52")
@@ -24,15 +26,25 @@ compute_availability <- function(dam, water_week, horizon,
     read_dam(data_dir = data_dir) %>%
     convert_to_metric() %>%
     fill_NAs(max_fill_gap = max_fill_gap) %>%
-    convert_to_complete_water_years() %>%
+    #convert_to_complete_water_years() %>%
+    convert_to_water_years() %>%
     aggregate_to_water_weeks() %>%
     back_calc_missing_flows(compute_from = compute_from) %>%
     mutate(i_sum = rollsum(i, horizon, fill = NA, align = "left"),
            a = s_start + i_sum) %>%
-    filter(is.na(a) == F, is.na(r) == F) %>%
     mutate(horizon = !! horizon %>% as.integer()) %>%
     filter(water_week == !! water_week) %>%
-    set_cutoff_year(cutoff_year)
+    set_cutoff_year(cutoff_year) %>%
+    filter(!is.na(r),
+           !is.na(a)) -> release_and_availability
+
+  if(nrow(release_and_availability) >= min_allowable_points){
+    return(release_and_availability)
+  }else{
+    stop(paste0("Bad data... too few points (",
+                nrow(release_and_availability), ") for building release availability function... ",
+                "water_week = ", water_week, "; horizon = ", horizon, "; dam = ", dam))
+  }
 
 }
 
@@ -54,16 +66,16 @@ optimize_piecewise_function <- function(r_a_tibble,
                                         append_r_pred = F,
                                         opt_mode){
 
-  # exit routine and return NA for horizons > allowable within water year
+  # exit routine and return NA for horizons > allowable within water year (deprecated!)
   r_a_tibble %>% .$water_week %>% unique -> ww
   r_a_tibble %>% .$horizon %>% unique -> lead_weeks
-  maximum_lead <- 53 - ww
-  if(lead_weeks > maximum_lead){
-    return(
-      # NA values for all parameters
-      c(NA, NA, NA, NA, NA)
-    )
-  }
+  # maximum_lead <- 53 - ww
+  # if(lead_weeks > maximum_lead){
+  #   return(
+  #     # NA values for all parameters
+  #     c(NA, NA, NA, NA, NA)
+  #   )
+  # }
 
   # prepare model data
   r_a_tibble %>% select(a, r) %>% arrange(a) -> mod_data
@@ -261,10 +273,12 @@ optimize_piecewise_function <- function(r_a_tibble,
 #' @export
 #'
 get_optimized_models <- function(dam, all_valid_combos,
+                                 allow_fcast_across_water_yr = TRUE,
                                  write_to = NULL,
                                  water_week = NULL, horizon = NULL,
                                  compute_from = "i",
                                  max_fill_gap = 10,
+                                 max_horizon = 30,
                                  write_loc = NULL,
                                  data_dir = NULL,
                                  cutoff_year = NULL,
@@ -273,11 +287,12 @@ get_optimized_models <- function(dam, all_valid_combos,
   plan(multiprocess)
 
   if(isTRUE(all_valid_combos)){
-    # create a tibble of week and horizon combinations
     expand.grid(ww = 1:52,
-                h = 1:30) %>%
-      filter(h+ww <= 53) ->
+                h = 1:max_horizon) ->
       ww_h_combos
+    if(isFALSE(allow_fcast_across_water_yr)){
+      ww_h_combos <- ww_h_combos %>% filter(h+ww <= 53)
+    }
   }else{
     expand.grid(ww = water_week,
                 h = horizon) ->

@@ -123,6 +123,27 @@ remove_incomplete_water_years <- function(x){
 }
 
 
+#' convert_to_water_years
+#'
+#' @param x tibble to be filtered
+#' @description arranges data by water years
+#' @import lubridate
+#' @importFrom dplyr mutate filter select bind_rows case_when
+#' @importFrom purrr map
+#' @return filtered data in water years
+#' @export
+#'
+convert_to_water_years <- function(x){
+  x %>%
+    mutate(month = month(date),
+           year = year(date),
+           water_year = case_when(
+             month >= 10 ~ year + 1,
+             month < 10 ~ year
+           )) %>%
+    select(water_year, date, s, i, r)
+}
+
 #' convert_to_complete_water_years
 #'
 #' @param x tibble to be filtered
@@ -135,17 +156,12 @@ remove_incomplete_water_years <- function(x){
 #'
 convert_to_complete_water_years <- function(x){
   x %>%
-    mutate(month = month(date),
-           year = year(date),
-           water_year = case_when(
-             month >= 10 ~ year + 1,
-             month < 10 ~ year
-           )) %>%
-    select(water_year, date, s, i, r) %>%
+    convert_to_water_years() %>%
     split(.$water_year) %>%
     map(remove_incomplete_water_years) %>%
     bind_rows()
 }
+
 
 
 # get_weekly_res_data
@@ -179,14 +195,46 @@ get_weekly_res_data <- function(x){
 #' @export
 #'
 aggregate_to_water_weeks <- function(x){
+
   x %>%
-    split(.$water_year) %>%
-    map(get_weekly_res_data) %>%
-    bind_rows() -> x_agg
+    mutate(month = month(date), day = day(date)) %>%
+    left_join(gen_water_weeks(),
+              by = c("month", "day")) -> x_
 
-  if(nrow(x_agg) == 0) stop("No good data!")
+  # snip off end and start weeks if incomplete (i.e., < 7 days' duration)
 
-  x_agg
+  #nrow(x_) - which(x_$water_week %>% diff() == 1) %>% last() -> end_snip
+  which(x_$water_week %>% diff() == 1) %>% first() -> start_snip
+  #if(end_snip < 7) x_ <- x[(nrow(x_) - 1):nrow(x_), ]
+
+  if(!(start_snip %in% 1:8)) stop("first water week duration > 8 days!")
+
+  if(start_snip < 7) {
+    x_snipped <- x_[-(1:start_snip), ]
+  }else{
+    x_snipped <- x
+  }
+
+  x_snipped %>%
+    group_by(water_year, water_week) %>%
+    summarise(i = sum(i),
+              r = sum(r),
+              s_start = first(s)) %>%
+    ungroup() %>%
+    mutate(s_end = lead(s_start, 1),
+           s_change = s_end - s_start,
+           r_ = i - s_change,
+           r_ = if_else(r_ < 0, 0, r_),
+           i_ = r + s_change)
+
+  # x %>%
+  #   split(.$water_year) %>%
+  #   map(get_weekly_res_data) %>%
+  #   bind_rows() -> x_agg
+
+  # if(nrow(x_agg) == 0) stop("No good data!")
+  #
+  # x_agg
 }
 
 
@@ -261,5 +309,24 @@ set_cutoff_year <- function(x, cutoff_year = NULL){
   x %>%
     filter(water_year >= cutoff_year)
 }
+
+#' gen_water_weeks
+#'
+#' generate water weeks by month and day
+#'
+gen_water_weeks <- function(){
+  # generate date sequence for arbitrary non-leap year
+  tibble(date = as_date(1:364, origin = "2018-9-30"),
+         water_week = rep(1:52, each = 7)) %>%
+    mutate(month = month(date), day = day(date)) %>%
+    select(-date) %>%
+    bind_rows(tibble(water_week = 52, month = 9, day = 30)) %>%
+    # ^^ add 8th day to week 52
+    bind_rows(tibble(water_week = 22, month = 2, day = 29)) %>%
+    # ^^ add 8th day to week 22 for leap years
+    arrange(water_week, day)
+}
+
+
 
 
