@@ -212,7 +212,7 @@ aggregate_to_water_weeks <- function(x){
   if(start_snip < 7) {
     x_snipped <- x_[-(1:start_snip), ]
   }else{
-    x_snipped <- x
+    x_snipped <- x_
   }
 
   x_snipped %>%
