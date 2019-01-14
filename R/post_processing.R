@@ -77,10 +77,9 @@ despike <- function(x, tolerable_diff = 6){
            lead_h = lead(horizon),
            mean_either_side = (lag_h + lead_h) / 2,
            h_despiked = case_when(
-             abs(horizon - mean_either_side) > tolerable_diff ~ mean_either_side,
-             abs(horizon - mean_either_side) <= tolerable_diff ~ as.double(horizon),
-             is.na(mean_either_side) ~ as.double(horizon))) %>%
-    mutate(horizon = h_despiked) %>%
+             (horizon - lag_h) > tolerable_diff & (horizon - lead_h) > tolerable_diff ~ mean_either_side,
+             (lag_h - horizon) > tolerable_diff & (lead_h - horizon) > tolerable_diff ~ mean_either_side)) %>%
+    mutate(horizon = if_else(is.na(h_despiked), horizon, as.integer(h_despiked))) %>%
     select(water_week, horizon, r_sq)
 }
 
