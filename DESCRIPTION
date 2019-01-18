@@ -7,7 +7,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "sean.turner@pnnl.gov")
 Description: Estimates inflow forecast horizons used in reservoir release decisions.
-License: MIT + file LICENSE
+License: BSD 2-Clause
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
