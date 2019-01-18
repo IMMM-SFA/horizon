@@ -66,9 +66,15 @@ optimize_piecewise_function <- function(r_a_tibble,
                                         append_r_pred = F,
                                         opt_mode){
 
+
+
   # exit routine and return NA for horizons > allowable within water year (deprecated!)
   r_a_tibble %>% .$water_week %>% unique -> ww
   r_a_tibble %>% .$horizon %>% unique -> lead_weeks
+
+  message(paste0("Beginning optimization for water week ", ww, " with horizon = ", lead_weeks, " ..."))
+
+
   # maximum_lead <- 53 - ww
   # if(lead_weeks > maximum_lead){
   #   return(
@@ -237,7 +243,6 @@ optimize_piecewise_function <- function(r_a_tibble,
 
   }
 
-  message(paste0("Optimization for water week ", ww, " with horizon = ", lead_weeks, " complete!"))
   flush.console()
 
 
