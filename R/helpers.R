@@ -41,6 +41,35 @@ fix_usgs_names <- function(){
                 to = sub("usgs_", "", each_path))
   })
 }
+# fix_usgs_inflows
+#
+# Removes inflow series that are unreasonably smaller than outflow...
+# This issue is caused by use of single entry streams to reservoir (as opposed to full inflow)
+
+fix_usgs_inflows <- function(){
+  list.files("inst/extdata/usgs/processed") -> usgs_data_files
+
+  usgs_data_files %>%
+    purrr::map(function(x) {
+      read_csv(paste0("inst/extdata/usgs/processed/", x),
+               col_types = cols(date = "c",
+                                s_af = "d",
+                                i_cfs = "d",
+                                r_cfs = "d")) -> rd
+
+      test <- rd$r_cfs %>% mean(na.rm = T) > 2 * rd$i_cfs %>% mean(na.rm = T)
+
+      if(isTRUE(test) | !is.na(test)){
+        rd %>%
+          mutate(i_cfs = NaN) %>%
+          write_csv(paste0("inst/extdata/usgs/processed/", x))
+      }else{
+        message(paste0(x, " looks ok"))
+      }
+    })
+}
+
+
 
 
 

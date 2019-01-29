@@ -130,6 +130,7 @@ select_all_models <- function(results_dir, write_loc = NULL){
       selected_models_unsmoothed %>%
         remove_low_rsq(rsq_cutoff = 0.2) %>%
         despike() %>%
+        despike() %>%
         post_smooth() %>% select(-r_sq) %>%
         rename(horizon_smth = horizon) %>%
         right_join(selected_models_unsmoothed, by = "water_week") ->
