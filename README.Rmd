@@ -1,0 +1,202 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "80%",
+  dpi = 300,
+  fig.align = "center"
+)
+```
+# horizon
+
+The goal of `horizon` is to infer operating policies from daily dam and reservoir data, including the use of foresight in release decisions.
+
+## Installation
+
+You can install `horizon` from this repository using devtools:
+
+``` r
+devtools::install_github("IMMM-SFA/horizon")
+```
+Once installed, load the library:
+```{r load horizon}
+library(horizon)
+```
+
+```{r load libs, include=FALSE}
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+```
+
+
+## Walk-through example
+
+The following example walks through the derivation of weekly operating policy and forecast use signature for Glen Canyon Dam (Lake Powell), which is operated by the US Bureau of Reclamation (https://www.usbr.gov/uc/water/crsp/cs/gcd.html).
+
+
+
+### Read and pre-process data
+
+Horizon is designed to read daily operational csv files in the format: date (yyyy-mm-dd), storage (acrefeet), release (cubic feet per second), and inflow (cubic feet per second).
+
+The `show_dams` function may be used to explore the default dataset. Running `show_dams("usbr"`) will show all US Bureau of Reclamation dams available for analysis. The data for any dam is read into the environment using `read_dam()`:
+
+```{r example}
+read_dam("usbr_lakepowell") -> lakepowell_raw
+print(lakepowell_raw)
+```
+
+The function argument is simply a combined string indicating the data source ("usbr") follwed by the dam ("lakepowell") separated by an underscore.
+
+The data include daily inflow and storage. Release data are unavailable and will have to be estimated later...
+
+```{r dam data plot, echo = FALSE}
+lakepowell_raw %>% 
+  mutate(jday = yday(date),
+         year = year(date)) %>%
+  select(jday, year, `Storage, acrefeet` = s_af, `Inflow, cfs` = i_cfs) %>% 
+  tidyr::gather(metric, value, -jday, -year) %>% 
+  ggplot(aes(jday, value, group = year)) +
+  geom_line(aes(color = year), alpha = 0.7) +
+  facet_wrap(~metric, scales = "free_y", ncol = 1) +
+  theme_bw() +
+  labs(title = "Lake Powell operations, 1963 - 2017",
+       x = "Day of calendar year",
+       y = NULL)
+```
+
+
+`Horizon` contains a variety of functions for pre-processing the data into the correct format for deriving "forecast use signatures".
+
+#### Step 1: `convert_to_metric`
+
+First, we convert the units to metric volumes (so that inflow and release are daily totals rather than flow rates):
+
+```{r convert to metric}
+lakepowell_raw %>% convert_to_metric() ->
+  lakepowell_metric  # all units now in Million cubic meters
+
+lakepowell_metric
+
+```
+
+#### Step 2: `fill_NAs`
+
+Next we fill any small gaps in the time series:
+
+```{r fill NAs}
+lakepowell_metric %>%
+  fill_NAs(max_fill_gap = 10) ->
+  # ^^ gaps of maximum 10 days are filled using cubic spline interpolation
+  lakepowell_gapfilled
+
+lakepowell_gapfilled
+
+```
+
+The above procedude will fill gaps up to a maximum of `max_fill_gap` days (default = 10), so that dam records with long gaps will be excluded from the analysis later.
+
+#### Step 3: `convert_to_water_years`
+```{r convert to water years}
+lakepowell_gapfilled %>%
+  convert_to_water_years() ->
+  lakepowell_wateryrs
+
+lakepowell_wateryrs %>%
+  filter(water_year == 2016)
+
+# the water year starts 1st October of the prior calendar year
+```
+
+#### Step 4: `aggregate_to_water_weeks`
+```{r agg to water weeks}
+lakepowell_wateryrs %>%
+  aggregate_to_water_weeks() ->
+  lakepowell_weekly
+
+lakepowell_weekly
+```
+
+In this step, the data are aggregated to water weeks 1-52 (you can use `horizon:::gen_water_weeks()` to see how calendar days are mapped to water weeks). Some new variables are introduced, too. `s_start` and `s_end` are the starting and end storage volumes for each week, and `s_change` is the resulting change in storage. The latter is used to back-calculate new variables `i_` and `r_`, which are the inflow and release volumes **estimated** using `s_change` assuming convervation of mass (and no evaporation or other water losses).
+
+#### Step 5: `back_calc_missing_flows`
+
+The final step is then to select the final set of inflow, release and storage variables for forecast use signature derivation:
+
+```{r back calc}
+lakepowell_weekly %>%
+  back_calc_missing_flows(compute_from = "i") ->
+  # ^^ compute_from = "i" tells the function to use the estimated release...
+  # ... since observed release is missing
+  lakepowell_final
+
+lakepowell_final
+```
+
+
+### Read and pre-process data
+
+All of the above steps are rolled into the `compute_availability` function, which takes the additional step of adding the *availability* variable *for a chosen water week* and given future inflow *horizon*. The availabiltiy is simply the sum of the starting storage and the cumulative inflow out to the horizon h weeks. For example:
+
+```{r comp av}
+"usbr_lakepowell" %>%
+  # ^^ we can simply supply the name of the dam; the function carries out pre-processing automatically.
+  compute_availability(water_week = 1, horizon = 1,
+                       min_allowable_points = 10,
+                       cutoff_year = 1995)
+```
+
+The function provides the required data to display the release-availability scatter for water week 1 with a horizon of 1 week ahead (from the start of the water week). These are the data we use to understand the likelihood of a given horizon being used to inform the release policy.
+
+Two additional arguments are supplied here. The argument `min_allowable_points`  helps identify cases where there is insufficient data for inferring a release policy. This works by throwing an error in cases where there are less than the specified number of years of release and availability data for a given water week (here set to 10 data points). The argument `cutoff_year` filters the input data to remove all points prior to the cutoff year (here 1995). Long records likely encompass different release policies, so the use of a cutoff year improves the chances that the data are representative of one policy.
+
+`horizon` features in-built functions for plotting these data:
+
+```{r comp av plot}
+hplot_ready_data("usbr_lakepowell", water_week = 1, horizon =1,
+                 cutoff_year = 1995)
+```
+
+We can add an optimized piecewise linear function with a simple call to `add_piecewise_fn`:
+
+```{r comp av plot pw}
+hplot_ready_data("usbr_lakepowell", water_week = 1, horizon =1,
+                 cutoff_year = 1995,
+                 add_piecewise_fn = TRUE)
+```
+
+In the above case it appears that availabilty predics release quite well; the simple policy function fits, particularly for the wetter years of operation on the right of the function. This may not always be the case. The following example, where the water week is changed to week 25, we see that water availability with a horizon of 1 week is a poor predictor of the release decision:
+
+```{r comp av plot pw wk25}
+hplot_ready_data("usbr_lakepowell", water_week = 25, horizon =1,
+                 cutoff_year = 1995,
+                 add_piecewise_fn = TRUE)
+```
+
+One can use the `hplot_ready_data` function to investigate multiple water weeks and horzions simultaneously:
+
+```{r comp av plot pw wk25 mult}
+hplot_ready_data("usbr_lakepowell", water_week = 24:25, horizon = c(1, 15),
+                 cutoff_year = 1995,
+                 add_piecewise_fn = TRUE)
+```
+
+The result shows that water availability with a horizon of 15 weeks results in a much closer policy fit than water availability with a horizon of one week. We use this form of analysis to infer the forecast horizon that might be used in determining water release decisions at different weeks of the water year.
+
+
+
+
+
+
+
+
+
+
