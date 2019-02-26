@@ -107,10 +107,11 @@ hplot_ready_data <- function(dam, water_week, horizon,
       ggplot(aes(a, r, color = water_year)) + geom_point() +
       facet_grid(water_week ~ horizon, scales = "free", labeller = "label_both") +
       labs(title = "Release as a function of available water",
-           y = "Relase (Mm^3)",
-           x = "Availability (Water in storage + inflow[1:h]) (Mm^3)",
+           y = expression(Release~(Mm^3)),
+           x = expression(Availability~(Mm^3)),
            color = "Water year") +
-      geom_line(aes(y = pred_r), color = "red")
+      geom_line(aes(y = pred_r), color = "red") +
+      theme_bw()
   }
 }
 
@@ -131,10 +132,11 @@ hplot_selected_models <- function(selected_models){
     ggplot(aes(water_week, horizon, color = r_sq)) +
     geom_point() +
     geom_line(aes(water_week, horizon), color = "black", alpha = 0.2) +
-    labs(title = "Selected model for ...",
+    labs(title = "Forecast use signature",
          x = "Water week",
          y = "Horizon selected (weeks)",
-         color = "R-squared")
+         color = "R-squared") +
+    theme_bw()
 
 }
 
