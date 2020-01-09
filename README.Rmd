@@ -14,6 +14,8 @@ knitr::opts_chunk$set(
   fig.align = "center"
 )
 ```
+[![Build Status](https://travis-ci.org/IMMM-SFA/horizon.svg?branch=master)](https://travis-ci.org/IMMM-SFA/horizon)
+
 # horizon
 
 The goal of `horizon` is to infer operating policies from daily dam and reservoir data, including the use of foresight in release decisions.
@@ -58,11 +60,11 @@ The function argument is simply a combined string indicating the data source ("u
 The data include daily inflow and storage. Release data are unavailable and will have to be estimated later...
 
 ```{r dam data plot, echo = FALSE}
-lakepowell_raw %>% 
+lakepowell_raw %>%
   mutate(jday = yday(date),
          year = year(date)) %>%
-  select(jday, year, `Storage, acrefeet` = s_af, `Inflow, cfs` = i_cfs) %>% 
-  tidyr::gather(metric, value, -jday, -year) %>% 
+  select(jday, year, `Storage, acrefeet` = s_af, `Inflow, cfs` = i_cfs) %>%
+  tidyr::gather(metric, value, -jday, -year) %>%
   ggplot(aes(jday, value, group = year)) +
   geom_line(aes(color = year), alpha = 0.7) +
   facet_wrap(~metric, scales = "free_y", ncol = 1) +
@@ -210,8 +212,8 @@ The result includes the parameters (`p1`, `p2`, `p3`, `p4`) and goodness-of-fit 
 If we plot for each water week the R-squared values as a function of the horizon, we begin to get a sense of how foresight may be driving operations:
 
 ```{r plot policy fits, echo = FALSE}
-usbr_lakepowell_pw_all %>% 
-  mutate(r_sq = round(r_sq, 1)) %>% 
+usbr_lakepowell_pw_all %>%
+  mutate(r_sq = round(r_sq, 1)) %>%
   # ^^ rounding R-squared helps draw a clearer distinction between policy fits
   ggplot(aes(horizon, r_sq)) +
   geom_line() +
@@ -230,19 +232,19 @@ The plot reveals an interesting shift in pattern throught he water year. Early i
 The forecast use signature specifies the horizon used in operations for all weeks of the water year. It is created by selecting the horizon for each water week that provides the closest piecewise function fit.
 
 ```{r fcast use sig}
-usbr_lakepowell_pw_all %>% 
-  select_best_horizon() %>% 
+usbr_lakepowell_pw_all %>%
+  select_best_horizon() %>%
   hplot_selected_models()
 ```
 
 The above forecast use signature is rather noisy--which is unsurprising given some of the uncertainties in the method. However, we want to avoid inferring forecast use in cases where the policy fits are weak. We also want to avoid sharp spikes. We address the noise with some smoothing:
 
 ```{r fcast use sig smth}
-usbr_lakepowell_pw_all %>% 
+usbr_lakepowell_pw_all %>%
   select_best_horizon() %>%
   horizon:::remove_low_rsq(rsq_cutoff = 0.2) %>%
   # ^^ sets horizon to 1 for all cases with R-squared < rsq_cutoff
-  horizon:::despike() %>% 
+  horizon:::despike() %>%
   # ^^ removes sharp spikes
   horizon:::post_smooth() %>%
   # ^^ gentle smoothing spline
