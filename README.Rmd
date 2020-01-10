@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
   fig.align = "center"
 )
 ```
-[![Build Status](https://travis-ci.org/IMMM-SFA/horizon.svg?branch=master)](https://travis-ci.org/IMMM-SFA/horizon)
+[![Build Status](https://travis-ci.org/IMMM-SFA/horizon.svg?branch=master)](https://travis-ci.org/IMMM-SFA/horizon) [![codecov](https://codecov.io/gh/IMMM-SFA/horizon/branch/master/graph/badge.svg)](https://codecov.io/gh/IMMM-SFA/horizon)
 
 # horizon
 

@@ -1,6 +1,6 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-[![Build Status](https://travis-ci.org/IMMM-SFA/horizon.svg?branch=master)](https://travis-ci.org/IMMM-SFA/horizon)
+[![Build Status](https://travis-ci.org/IMMM-SFA/horizon.svg?branch=master)](https://travis-ci.org/IMMM-SFA/horizon) [![codecov](https://codecov.io/gh/IMMM-SFA/horizon/branch/master/graph/badge.svg)](https://codecov.io/gh/IMMM-SFA/horizon)
 
 horizon
 =======
@@ -188,10 +188,10 @@ lakepowell_final
 #>  4       1963         43  35.2  32.7    58.5
 #>  5       1963         44  26.7  24.2    60.9
 #>  6       1963         45  73.6  10.7    63.4
-#>  7       1963         46  79.3  26.3   126. 
-#>  8       1963         47  69.3  24.9   179. 
-#>  9       1963         48 132.    0     224. 
-#> 10       1963         49 152.   36.4   369. 
+#>  7       1963         46  79.3  26.3   126.
+#>  8       1963         47  69.3  24.9   179.
+#>  9       1963         48 132.    0     224.
+#> 10       1963         49 152.   36.4   369.
 #> # ... with 2,823 more rows
 ```
 
@@ -305,8 +305,8 @@ The plot reveals an interesting shift in pattern throught he water year. Early i
 The forecast use signature specifies the horizon used in operations for all weeks of the water year. It is created by selecting the horizon for each water week that provides the closest piecewise function fit.
 
 ``` r
-usbr_lakepowell_pw_all %>% 
-  select_best_horizon() %>% 
+usbr_lakepowell_pw_all %>%
+  select_best_horizon() %>%
   hplot_selected_models()
 ```
 
@@ -315,11 +315,11 @@ usbr_lakepowell_pw_all %>%
 The above forecast use signature is rather noisy--which is unsurprising given some of the uncertainties in the method. However, we want to avoid inferring forecast use in cases where the policy fits are weak. We also want to avoid sharp spikes. We address the noise with some smoothing:
 
 ``` r
-usbr_lakepowell_pw_all %>% 
+usbr_lakepowell_pw_all %>%
   select_best_horizon() %>%
   horizon:::remove_low_rsq(rsq_cutoff = 0.2) %>%
   # ^^ sets horizon to 1 for all cases with R-squared < rsq_cutoff
-  horizon:::despike() %>% 
+  horizon:::despike() %>%
   # ^^ removes sharp spikes
   horizon:::post_smooth() %>%
   # ^^ gentle smoothing spline
