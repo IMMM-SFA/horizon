@@ -1,6 +1,6 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-[![Build Status](https://travis-ci.org/IMMM-SFA/horizon.svg?branch=master)](https://travis-ci.org/IMMM-SFA/horizon) [![codecov](https://codecov.io/gh/IMMM-SFA/horizon/branch/master/graph/badge.svg)](https://codecov.io/gh/IMMM-SFA/horizon)
+[![DOI](https://zenodo.org/badge/156433965.svg)](https://zenodo.org/badge/latestdoi/156433965) [![Build Status](https://travis-ci.org/IMMM-SFA/horizon.svg?branch=master)](https://travis-ci.org/IMMM-SFA/horizon) [![codecov](https://codecov.io/gh/IMMM-SFA/horizon/branch/master/graph/badge.svg)](https://codecov.io/gh/IMMM-SFA/horizon)
 
 horizon
 =======
