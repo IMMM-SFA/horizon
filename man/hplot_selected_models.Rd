@@ -2,7 +2,7 @@
 % Please edit documentation in R/diagnostics.R
 \name{hplot_selected_models}
 \alias{hplot_selected_models}
-\title{hplot_model_performances}
+\title{hplot_selected_models}
 \usage{
 hplot_selected_models(selected_models)
 }
@@ -15,5 +15,5 @@ hplot_selected_models(selected_models)
 plot of selected horizon for all water weeks
 }
 \description{
-hplot_model_performances
+hplot_selected_models
 }

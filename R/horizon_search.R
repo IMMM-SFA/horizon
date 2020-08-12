@@ -28,7 +28,7 @@ compute_availability <- function(dam, water_week, horizon,
     fill_NAs(max_fill_gap = max_fill_gap) %>%
     #convert_to_complete_water_years() %>%
     convert_to_water_years() %>%
-    aggregate_to_water_weeks() %>%
+    aggregate_to_water_weeks() %>% #filter(water_week == 22, water_year == 1985)
     back_calc_missing_flows(compute_from = compute_from) %>%
     mutate(i_sum = rollsum(i, horizon, fill = NA, align = "left"),
            a = s_start + i_sum) %>%
@@ -286,7 +286,8 @@ get_optimized_models <- function(dam, all_valid_combos,
                                  write_loc = NULL,
                                  data_dir = NULL,
                                  cutoff_year = NULL,
-                                 opt_mode = "two_param"){
+                                 opt_mode = "two_param",
+                                 drop_year = NULL){
   # set up multicore access for mapping
   plan(multiprocess)
 
@@ -311,7 +312,11 @@ get_optimized_models <- function(dam, all_valid_combos,
                            compute_from = compute_from,
                            max_fill_gap = max_fill_gap,
                            data_dir = data_dir,
-                           cutoff_year = cutoff_year)
+                           cutoff_year = cutoff_year) -> availability
+      if(is.null(drop_year)) return(availability)
+
+      availability %>% filter(water_year != drop_year)
+
     }) ->
     r_a_tibbles
 

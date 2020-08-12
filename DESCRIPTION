@@ -11,7 +11,7 @@ License: BSD 2-Clause
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.0
 Imports: 
     dplyr,
     ggplot2,
@@ -24,7 +24,8 @@ Imports:
     readr,
     furrr,
     future,
-    zoo
+    zoo,
+    modelr
 Suggests: 
     testthat
 StagedInstall: no
