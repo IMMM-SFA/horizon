@@ -328,5 +328,25 @@ gen_water_weeks <- function(){
 }
 
 
+#' read_dam_USRDATS
+#'
+#' @param dam GRanD ID of dam
+#' @description reads in observed dam data as tibble
+#' @importFrom vroom vroom cols
+#' @importFrom dplyr select
+#' @return tibble of observed dam data (storage, inflow, release)
+#' @export
+read_dam_USRDATS <- function(grand_id, data_dir){
 
+  vroom(paste0(data_dir, "/", grand_id, ".csv"),
+           col_types = cols(date = "D",
+                            storage = "d",
+                            inflow = "d",
+                            outflow = "d",
+                            elevation = "d",
+                            evaporation = "d")) %>%
+    select(date, s_MCM = storage,
+           i_cumecs = inflow,
+           r_cumecs = outflow)
+}
 
