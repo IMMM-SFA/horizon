@@ -25,7 +25,9 @@ Imports:
     furrr,
     future,
     zoo,
-    modelr
+    modelr,
+    vroom,
+    cowplot
 Suggests: 
     testthat
 StagedInstall: no
